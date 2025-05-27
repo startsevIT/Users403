@@ -1,72 +1,69 @@
-from entites.UserModels import ReadUserModel
+from sqlmodel import col, or_
+from sqlmodel.sql.expression import SelectOfScalar
 
-def age_sort_asceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
-    buffer_list.sort(key=lambda user: user.age)
-    return buffer_list
+from entites.User import User
 
-def age_sort_desceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
-    buffer_list.sort(key=lambda user: user.age, reverse=True)
-    return buffer_list
+# def age_sort_asceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
+#     buffer_list.sort(key=lambda user: user.age)
+#     return buffer_list
 
-def name_sort_asceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
-    buffer_list.sort(key=lambda user: user.name)
-    return buffer_list
+# def age_sort_desceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
+#     buffer_list.sort(key=lambda user: user.age, reverse=True)
+#     return buffer_list
 
-def name_sort_desceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
-    buffer_list.sort(key=lambda user: user.name, reverse=True)
-    return buffer_list
+# def name_sort_asceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
+#     buffer_list.sort(key=lambda user: user.name)
+#     return buffer_list
 
-def gender_filter(buffer_list : list[ReadUserModel],
-                    value : str | None) -> list[ReadUserModel]:
+# def name_sort_desceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
+#     buffer_list.sort(key=lambda user: user.name, reverse=True)
+#     return buffer_list
+
+#Проверить фильтр
+def gender_filter(
+    buffer_query : SelectOfScalar[User], 
+    value : str | None) -> SelectOfScalar[User]:
     if value == None:
-        return buffer_list
+        return buffer_query
     
     if value.lower() not in ["мужской", "женский"]:
         raise Exception("Некорректный пол")
     
-    buffer : list[ReadUserModel] = []
-    for user in buffer_list:
-        if(user.gender.lower() == value.lower()):
-            buffer.append(user)
-    return buffer
+    return buffer_query.where(User.gender == value) # type: ignore
 
-def search(buffer_list : list[ReadUserModel],value : str | None) -> list[ReadUserModel]:
+def search(
+    buffer_query : SelectOfScalar[User],
+    value : str | None) -> SelectOfScalar[User]:
     if value is None:
-        return buffer_list
+        return buffer_query
     
-    buffer : list[ReadUserModel] = []
-    for user in buffer_list:
-        if value.lower() in user.name.lower() or value.lower() in user.surname.lower() or value.lower() in user.email.lower():
-            buffer.append(user)
-    return buffer
+    return buffer_query.where(or_(col(User.name).contains(value.lower()),
+                                  col(User.surname).contains(value.lower()),
+                                  col(User.email).contains(value.lower()))) 
 
-def pagination(buffer_list : list[ReadUserModel],
-                size : int | None, 
-                num : int | None) -> list[ReadUserModel]:
+def pagination(
+    buffer_query : SelectOfScalar[User],
+    size : int | None, 
+    num : int | None) -> SelectOfScalar[User]:
+    
     if size is None or num is None:
-        return buffer_list
+        return buffer_query
     
-    buffer : list[ReadUserModel] = []
-    start_i : int = size * num
-    for i in range(start_i,start_i + size):
-        if(i >= len(buffer_list)):
-            break
-        user : ReadUserModel = buffer_list[i]
-        buffer.append(user)
-    return buffer
+    return buffer_query.offset(size * num).limit(size)
 
-def sort(buffer_list : list[ReadUserModel],
+def sort(buffer_list : SelectOfScalar[User],
         field : str | None = None, 
-        sort_type : int | None = None) -> list[ReadUserModel]:
+        sort_type : int | None = None) -> SelectOfScalar[User]:
     if(field is None or sort_type is None):
         return buffer_list
+    
     if(field == "name" and sort_type == 0):
-        return name_sort_asceding(buffer_list)
+        return buffer_list.order_by(User.name)
     if(field == "name" and sort_type == 1):
-        return name_sort_desceding(buffer_list)
+        return buffer_list.order_by(User.name.desc())
     if(field == "age" and sort_type == 0):
-        return age_sort_asceding(buffer_list)
+        return buffer_list.order_by(User.age)
     if(field == "age" and sort_type == 1):
-        return age_sort_desceding(buffer_list)
+        return buffer_list.order_by(User.age.desc())
     raise Exception("Неожиданная ошибка в сортировке")
     

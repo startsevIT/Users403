@@ -6,3 +6,4 @@ PyJWT
 fastapi_controllers
 pydantic[email]
 python-dateutil
+sqlmodel

@@ -32,7 +32,7 @@ class LoginUserModel(BaseModel):
     password : str
     
 class ReadUserModel(BaseModel):
-    id : UUID
+    id : UUID | None
     email : EmailStr 
     name : str
     surname : str

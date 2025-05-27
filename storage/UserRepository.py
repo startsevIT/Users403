@@ -1,15 +1,29 @@
+from datetime import datetime
 from uuid import UUID
+import uuid
+from dateutil.relativedelta import relativedelta
+
+from pydantic import EmailStr
+from sqlalchemy import Engine
+from sqlmodel import Field, SQLModel, Session, create_engine, select
 from auth.auth import create_token
 from entites.User import User
 from storage.UserDataManipulations import gender_filter, pagination, search, sort
 from entites.UserModels import LoginUserModel, ReadUserModel, RegisterUserModel, UpdateUserModel
 from auth.hash import get_password_hash, verify_password
 
+import os.path
+
 class UserRepository:
-    __users : list[User]
+    __path : str 
+    __engine : Engine 
     
     def __init__(self):
-        self.__users = []
+        self.__path = "database.db"
+        self.__engine = create_engine(f"sqlite:///{self.__path}")
+        
+        if not os.path.exists(self.__path): 
+            SQLModel.metadata.create_all(self.__engine)
     
     def register(self, reg_model : RegisterUserModel) -> None:
         if self.__identification(reg_model.email):
@@ -32,10 +46,10 @@ class UserRepository:
         return user
         
     def __identification(self, identificator : str) -> User | None:
-        for user in self.__users:
-            if(user.email == identificator):
-                return user
-        return None
+        with Session(self.__engine) as session:
+            statement = select(User).where(User.email == identificator)
+            user = session.exec(statement).first()
+            return user
       
     def __add(self, reg_model : RegisterUserModel) -> None:
         hashed_password = get_password_hash(reg_model.password)
@@ -45,7 +59,9 @@ class UserRepository:
                         reg_model.surname,
                         reg_model.birthdate,
                         reg_model.gender)
-        self.__users.append(user)
+        with Session(self.__engine) as session:
+            session.add(user)
+            session.commit()
     
     def read(self, 
             search_value : str | None,
@@ -54,8 +70,15 @@ class UserRepository:
             sort_type : int | None,
             page_size : int | None, 
             page_num : int | None) -> list[ReadUserModel]:
-        """Этот метод мне нужен"""
-        b0 = [ReadUserModel(
+
+        with Session(self.__engine) as session:
+            b0 = select(User)
+            b1 = search(b0, search_value)
+            b2 = gender_filter(b1, filter_value)
+            b3 = sort(b2, sort_field, sort_type)
+            b4 = pagination(b3,page_size,page_num)   
+            users = session.exec(b4).all()
+        result = [ReadUserModel(
                 id = user.id,
                 email = user.email,
                 name = user.name,
@@ -63,17 +86,19 @@ class UserRepository:
                 birthdate = user.birthdate,
                 age = user.age,
                 gender = user.gender)
-            for user in self.__users]
-        b1 = search(b0, search_value)
-        b2 = gender_filter(b1, filter_value)
-        b3 = sort(b2, sort_field, sort_type)
-        b4 = pagination(b3,page_size,page_num)
-        return b4
+            for user in users]
+        
+        return result
     
     def read_by_id(self, id : UUID) -> ReadUserModel | None:
-        for user in self.__users:
-            if(user.id == id):
-                return ReadUserModel(
+        with Session(self.__engine) as session:
+            statement = select(User).where(User.id == id)
+            user = session.exec(statement).first()
+        
+        if(user == None):
+            raise Exception("Пользовтель не найден")
+        
+        return ReadUserModel(
                     id = user.id,
                     email = user.email,
                     name = user.name,
@@ -81,8 +106,7 @@ class UserRepository:
                     birthdate = user.birthdate,
                     age = user.age,
                     gender = user.gender)
-        raise Exception("Пользовтель не найден")
-    
+        
     def update(self, id : UUID, update_model : UpdateUserModel) -> None:
         for user in self.__users:
             if(user.id == id):
@@ -101,18 +125,16 @@ class UserRepository:
         return None          
         
     def delete(self, id : UUID) -> None:
-        for user in self.__users:
-            if(user.id == id):
-                self.__users.remove(user)
-                return None
-        raise Exception("Пользователь не найден")
+        user = self.read_by_id(id)
+        with Session(self.__engine) as session:  
+            session.delete(user)  
+            session.commit()  
     
     def get_gender_tags(self) -> list[str]:
-        buffer : list[str] = []
-        for user in self.__users:
-            if(user.gender not in buffer):
-                buffer.append(user.gender)
-        return buffer
+        with Session(self.__engine) as session:
+            statement = select(User).distinct(User.gender)
+            genders = session.exec(statement).all()
+        return genders
 
     
     
