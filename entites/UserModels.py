@@ -1,31 +1,16 @@
 from datetime import datetime
-# import re
+from typing import Annotated, Optional
 from uuid import UUID
-from pydantic import BaseModel, EmailStr
+from pydantic import AfterValidator, BaseModel, EmailStr
+from entites.validators import birthdate_validate, gender_validate, password_validate
 
 class RegisterUserModel(BaseModel):
     email : EmailStr
-    password : str
+    password : Annotated[str, AfterValidator(password_validate)]
     name : str
     surname : str
-    birthdate : datetime
-    gender : str
-    
-    # @property
-    # def password(self):
-    #     return self.__password
-    # @password.setter
-    # def password(self, value : str):
-    #     if(not(8 < len(value) < 20)):
-    #         raise Exception("Длина пароля должна быть от 8 до 20 символов")
-    #     if(not bool(re.search(r'[A-Z]', value))):
-    #         raise Exception("Пароль должен содержать хотя-бы одну заглавную букву")
-    #     if(not bool(re.search(r'[a-z]', value))):
-    #         raise Exception("Пароль должен содержать хотя-бы одну прописную букву")
-    #     if(not bool(re.search(r'\d', value))):
-    #         raise Exception("Пароль должен содержать хотя-бы одну цифру")
-    #     self.__password = value
-    
+    birthdate : Annotated[datetime, AfterValidator(birthdate_validate)]
+    gender : Annotated[str, AfterValidator(gender_validate)]
     
 class LoginUserModel(BaseModel):
     email : EmailStr
@@ -39,11 +24,11 @@ class ReadUserModel(BaseModel):
     birthdate : datetime
     age : int
     gender : str
-    
+      
 class UpdateUserModel(BaseModel):
-    email : EmailStr | None
-    name : str | None
-    surname : str | None
-    birthdate : datetime | None
-    password : str | None
-    gender : str | None
+    email : Optional[EmailStr | None] = None
+    name : Optional[str | None] = None 
+    surname : Optional[str | None] = None 
+    birthdate : Optional[Annotated[datetime, AfterValidator(birthdate_validate)] | None] = None 
+    password : Optional[Annotated[str, AfterValidator(password_validate)] | None] = None 
+    gender : Optional[Annotated[str, AfterValidator(gender_validate)] | None] = None 

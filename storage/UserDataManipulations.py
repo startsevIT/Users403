@@ -1,25 +1,7 @@
 from sqlmodel import col, or_
 from sqlmodel.sql.expression import SelectOfScalar
-
 from entites.User import User
 
-# def age_sort_asceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
-#     buffer_list.sort(key=lambda user: user.age)
-#     return buffer_list
-
-# def age_sort_desceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
-#     buffer_list.sort(key=lambda user: user.age, reverse=True)
-#     return buffer_list
-
-# def name_sort_asceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
-#     buffer_list.sort(key=lambda user: user.name)
-#     return buffer_list
-
-# def name_sort_desceding(buffer_list : list[ReadUserModel]) -> list[ReadUserModel]:
-#     buffer_list.sort(key=lambda user: user.name, reverse=True)
-#     return buffer_list
-
-#Проверить фильтр
 def gender_filter(
     buffer_query : SelectOfScalar[User], 
     value : str | None) -> SelectOfScalar[User]:

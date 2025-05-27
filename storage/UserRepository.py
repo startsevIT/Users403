@@ -1,17 +1,12 @@
 from datetime import datetime
 from uuid import UUID
-import uuid
-from dateutil.relativedelta import relativedelta
-
-from pydantic import EmailStr
 from sqlalchemy import Engine
-from sqlmodel import Field, SQLModel, Session, create_engine, select
+from sqlmodel import  SQLModel, Session, create_engine, select
 from auth.auth import create_token
 from entites.User import User
 from storage.UserDataManipulations import gender_filter, pagination, search, sort
 from entites.UserModels import LoginUserModel, ReadUserModel, RegisterUserModel, UpdateUserModel
 from auth.hash import get_password_hash, verify_password
-
 import os.path
 
 class UserRepository:
@@ -24,6 +19,7 @@ class UserRepository:
         
         if not os.path.exists(self.__path): 
             SQLModel.metadata.create_all(self.__engine)
+            init_data(self)
     
     def register(self, reg_model : RegisterUserModel) -> None:
         if self.__identification(reg_model.email):
@@ -108,34 +104,131 @@ class UserRepository:
                     gender = user.gender)
         
     def update(self, id : UUID, update_model : UpdateUserModel) -> None:
-        for user in self.__users:
-            if(user.id == id):
-                if(update_model.email != None):
-                    user.email = update_model.email 
-                if(update_model.name != None):
-                    user.name = update_model.name 
-                if(update_model.surname != None):
-                    user.surname = update_model.surname 
-                if(update_model.birthdate != None):
-                    user.birthdate = update_model.birthdate 
-                if(update_model.password != None):
-                    user.hashed_password = update_model.password
-                if(update_model.gender != None):
-                    user.gender = update_model.gender
+        with Session(self.__engine) as session:
+            statement = select(User).where(User.id == id) 
+            user = session.exec(statement).first()
+            
+            if user == None:
+                raise Exception("Пользователь не найден")
+            
+            if(update_model.email != None):
+                user.email = update_model.email 
+            if(update_model.name != None):
+                user.name = update_model.name 
+            if(update_model.surname != None):
+                user.surname = update_model.surname 
+            if(update_model.birthdate != None):
+                user.birthdate = update_model.birthdate 
+            if(update_model.password != None):
+                user.hashed_password = update_model.password
+            if(update_model.gender != None):
+                user.gender = update_model.gender
+                
+            session.add(user)
+            session.commit()
+            session.refresh(user)
+            
         return None          
         
     def delete(self, id : UUID) -> None:
-        user = self.read_by_id(id)
         with Session(self.__engine) as session:  
+            statement = select(User).where(User.id == id)
+            user = session.exec(statement).first()
+            
+            if(user == None):
+                raise Exception("Пользовтель не найден")
+            
             session.delete(user)  
             session.commit()  
     
-    def get_gender_tags(self) -> list[str]:
+    def get_gender_tags(self) -> set[str]:
         with Session(self.__engine) as session:
-            statement = select(User).distinct(User.gender)
+            statement = select(User.gender)
             genders = session.exec(statement).all()
-        return genders
+        return set(genders)
 
     
     
     
+def init_data(user_repo : UserRepository):
+    #region init_data
+    user_repo.register(RegisterUserModel( 
+        email="1@mail.ru", 
+        password="123aaaAAA", 
+        name="АААААА", 
+        surname="Первый",
+        birthdate=datetime(1999,3,4),
+        gender="Мужской"))
+
+    user_repo.register(RegisterUserModel( 
+        email="2@mail.ru", 
+        password="123aaaAAA", 
+        name="ЯЯЯЯЯЯЯ", 
+        surname="Первый",
+        birthdate=datetime(1899,3,4),
+        gender="Мужской"))
+
+    user_repo.register(RegisterUserModel( 
+        email="3@mail.ru", 
+        password="123aaaAAA", 
+        name="ГГГГГГГ", 
+        surname="Первый",
+        birthdate=datetime(1989,3,4),
+        gender="Мужской"))
+
+    user_repo.register(RegisterUserModel( 
+        email="4@mail.ru", 
+        password="123aaaAAA", 
+        name="ЖЖЖЖЖЖЖ", 
+        surname="Первый",
+        birthdate=datetime(1779,3,4),
+        gender="Мужской"))
+
+    user_repo.register(RegisterUserModel( 
+        email="5@mail.ru", 
+        password="123aaaAAA", 
+        name="ВВВВВВВВ", 
+        surname="Первый",
+        birthdate=datetime(1777,3,4),
+        gender="Женский"))
+
+    user_repo.register(RegisterUserModel( 
+        email="6@mail.ru", 
+        password="123aaaAAA", 
+        name="ЛЛЛЛЛЛЛЛЛ", 
+        surname="Первый",
+        birthdate=datetime(2005,3,4),
+        gender="Женский"))
+
+    user_repo.register(RegisterUserModel( 
+        email="7@mail.ru", 
+        password="123aaaAAA", 
+        name="МММММММММ", 
+        surname="Первый",
+        birthdate=datetime(2001,3,4),
+        gender="Женский"))
+
+    user_repo.register(RegisterUserModel( 
+        email="8@mail.ru", 
+        password="123aaaAAA", 
+        name="НННННННННН", 
+        surname="Первый",
+        birthdate=datetime(2002,3,4),
+        gender="Женский"))
+
+    user_repo.register(RegisterUserModel( 
+        email="9@mail.ru", 
+        password="123aaaAAA", 
+        name="КККККККК", 
+        surname="Первый",
+        birthdate=datetime(2003,3,4),
+        gender="Женский"))
+
+    user_repo.register(RegisterUserModel( 
+        email="10@mail.ru", 
+        password="123aaaAAA", 
+        name="ААААААААА", 
+        surname="Первый",
+        birthdate=datetime(2003,3,4),
+        gender="Женский"))
+    #endregion`

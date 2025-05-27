@@ -2,15 +2,13 @@ from typing import Optional
 from uuid import UUID
 from fastapi import HTTPException, Request
 from fastapi_controllers import Controller
-from fastapi_controllers.routing import delete, get, post, put
-from storage.InitData import init_data
+from fastapi_controllers.routing import delete, get, patch, post, put
 from entites.UserModels import LoginUserModel, RegisterUserModel, UpdateUserModel
 from storage.UserRepository import UserRepository
-from auth.auth_helper import token_validation
+#from auth.auth_helper import token_validation
 
 class UserController(Controller): 
     user_repo = UserRepository()
-    init_data(user_repo)
         
     @get("/users/{id}")
     def get_user(self,id : UUID):
@@ -34,7 +32,7 @@ class UserController(Controller):
         except Exception as e:
             return str(e)
         
-    @put("/users/{id}")
+    @patch("/users/{id}")
     def update_user(self, id : UUID, update_model : UpdateUserModel):
         try:
             self.user_repo.update(id, update_model)
@@ -60,7 +58,7 @@ class UserController(Controller):
         page_size : Optional[int] = None,
         page_num : Optional[int] = None):
         try:
-            token_validation(request)
+            #token_validation(request)
             return self.user_repo.read(search_value,filter_value,sort_field,sort_type,page_size,page_num)
         except ValueError as e: 
             return HTTPException(401,detail=str(e))
